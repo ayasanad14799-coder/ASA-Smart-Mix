@@ -152,20 +152,48 @@ if run_btn:
 
 with t4:
     st.header("💡 AI-Based Full Mix Optimizer")
-    t_st = st.number_input("Target 28d Strength (MPa)", 20, 80, 40)
+    st.write("Generating 10,000 simulations to find the best eco-friendly recipes...")
+    t_st = st.number_input("Enter Target Strength (28d) - MPa", 20, 80, 40)
+    
     if st.button("Generate Top 10 Lab-Ready Mixes"):
         sims = []
-        for _ in range(3000):
-            cr=np.random.randint(300,500); wr=np.random.randint(150,185); rcar=np.random.choice([0,50,100]); sfr=np.random.randint(0,40)
-            t_in = np.array([[cr, wr, 1050, 750, rcar, 0, sfr, 0, 0, 0, 3.5, wr/cr, 20, 100, 2400]])
+        # زيادة عدد المحاولات لضمان إيجاد نتائج
+        for _ in range(10000):
+            # توليد متغيرات عشوائية منطقية للخلطة
+            cr = np.random.randint(280, 550)
+            wr = np.random.randint(140, 195)
+            nca_r = np.random.randint(900, 1150)
+            nfa_r = np.random.randint(650, 850)
+            rca_r = np.random.choice([0, 25, 50, 75, 100])
+            rfa_r = np.random.choice([0, 25, 50])
+            sf_r = np.random.randint(0, 50)
+            fa_r = np.random.randint(0, 120)
+            rha_r = np.random.randint(0, 20)
+            fib_r = np.random.uniform(0, 2.0)
+            sp_r = np.random.uniform(1.5, 8.0)
+            wc_r = wr / cr
+            
+            # مصفوفة المدخلات الـ 15
+            t_in = np.array([[cr, wr, nca_r, nfa_r, rca_r, rfa_r, sf_r, fa_r, rha_r, fib_r, sp_r, wc_r, 20, 100, 2400]])
+            
+            # التنبؤ
             pv = model.predict(scaler.transform(t_in))[0]
-            if abs(pv[1]-t_st) < 2.0:
-                sims.append({'Cement':cr, 'Water':wr, 'NCA':1050, 'NFA':750, 'RCA%':rcar, 'SF':sfr, 'CO2':round(pv[11],1), 'Strength':round(pv[1],1)})
+            
+            # توسيع النطاق لضمان إيجاد نتائج (Acceptance criteria)
+            if abs(pv[1] - t_st) < 4.0:
+                sims.append({
+                    'Cement': cr, 'Water': wr, 'W/C': round(wc_r, 2),
+                    'NCA': nca_r, 'NFA': nfa_r, 'RCA%': rca_r, 'RFA%': rfa_r,
+                    'SF': sf_r, 'FA': fa_r, 'RHA%': rha_r, 'Fiber': round(fib_r, 2),
+                    'SP': round(sp_r, 1), 'CO2': round(pv[11], 1), 'Strength': round(pv[1], 1)
+                })
+        
         if sims:
-            st.success("Top 10 Complete Mix Designs Found:")
-            st.dataframe(pd.DataFrame(sims).sort_values('CO2').head(10), use_container_width=True)
-        else: st.warning("No matches found. Try another target.")
-
+            res_df = pd.DataFrame(sims).sort_values('CO2').head(10)
+            st.success(f"✅ Found {len(sims)} matching mixes. Showing top 10 greenest options:")
+            st.dataframe(res_df, use_container_width=True)
+        else:
+            st.warning("⚠️ Still no exact matches. Try increasing the Target Strength or running again.")
 with t5:
     st.header("📖 User Guide & Instructions")
     st.info("""
