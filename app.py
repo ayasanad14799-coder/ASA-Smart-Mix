@@ -135,11 +135,53 @@ if run_btn:
         st.metric("Adjusted Cost", f"${(p[13]*inf):.2f}")
 
 with t4:
-    st.header("💡 AI Optimizer")
-    t_st = st.number_input("Target CS 28d (MPa)", 20, 80, 40)
-    if st.button("Generate Green Mixes"):
-        # (كود المحاكاة كما هو موجود سابقاً)
-        st.info("Optimizer engine ready for simulation.")
+    st.header("💡 AI-Based Full Mix Optimizer")
+    st.write("Generating 10,000 simulations to find the greenest recipes for your target strength...")
+    
+    # مدخل المقاومة المستهدفة
+    t_st = st.number_input("Enter Target Strength (28d) - MPa", 20, 80, 40)
+    
+    if st.button("Generate Top 10 Lab-Ready Mixes"):
+        sims = []
+        # تبدأ عملية المحاكاة لـ 10 آلاف خلطة عشوائية لاختيار الأفضل
+        for _ in range(10000):
+            cr = np.random.randint(280, 550)
+            wr = np.random.randint(140, 195)
+            nca_r = np.random.randint(900, 1150)
+            nfa_r = np.random.randint(650, 850)
+            rca_r = np.random.choice([0, 25, 50, 75, 100])
+            rfa_r = np.random.choice([0, 25, 50])
+            sf_r = np.random.randint(0, 50)
+            fa_r = np.random.randint(0, 120)
+            rha_r = np.random.randint(0, 20)
+            fib_r = np.random.uniform(0, 2.0)
+            sp_r = np.random.uniform(1.5, 8.0)
+            wc_r = wr / cr
+            
+            # مصفوفة المدخلات الـ 15
+            t_in = np.array([[cr, wr, nca_r, nfa_r, rca_r, rfa_r, sf_r, fa_r, rha_r, fib_r, sp_r, wc_r, 20, 100, 2400]])
+            
+            # التنبؤ باستخدام الموديل والسكيلر
+            pv = model.predict(scaler.transform(t_in))[0]
+            
+            # إذا كانت المقاومة قريبة من الهدف (فرق ± 4 ميجا) احفظ الخلطة
+            if abs(pv[1] - t_st) < 4.0:
+                sims.append({
+                    'Cement': cr, 'Water': wr, 'W/C': round(wc_r, 2),
+                    'RCA%': rca_r, 'SF': sf_r, 'FA': fa_r, 
+                    'Strength': round(pv[1], 1), 
+                    'CO2': round(pv[11], 1) # ترتيب النتائج حسب الأقل انبعاثاً للكربون
+                })
+        
+        if sims:
+            res_df = pd.DataFrame(sims).sort_values('CO2').head(10)
+            st.success(f"✅ Found {len(sims)} matching mixes. Showing top 10 greenest options:")
+            st.dataframe(res_df, use_container_width=True)
+            
+            # إضافة رسم بياني للمقارنة بين الـ 10 خلطات من حيث الكربون
+            st.bar_chart(res_df.set_index('Strength')['CO2'])
+        else:
+            st.warning("⚠️ No exact matches found for this specific strength. Try running again or adjusting the target.")
 
 with t5:
     st.header("📖 Technical Documentation & Research Scope")
