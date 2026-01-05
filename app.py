@@ -19,9 +19,13 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # عرض الشعار وعنوان البحث
+# الرابط المباشر لشعارك من GitHub
+logo_url = "https://raw.githubusercontent.com/ayasanad14799-coder/ASA-Smart-Mix/1a458aafdcfcc51f7f6f3cb65a9437581dbb8f7f/download.jfif"
+
+# عرض الشعار وعنوان البحث
 st.markdown(f"""
     <div class="header-container">
-        <img src="https://upload.wikimedia.org/wikipedia/ar/thumb/0/01/Mansoura_University_logo.png/200px-Mansoura_University_logo.png" class="logo-img">
+        <img src="{logo_url}" style="width: 120px; margin-right: 25px; border-radius: 10px;">
         <div style="text-align: center;">
             <h2 style="color: #004a99; margin-bottom:5px;">Multi-criteria analysis of eco-efficient concrete from Technical, Environmental and Economic aspects</h2>
             <p style="font-size: 1.1em; margin-bottom:5px;"><b>Prepared by: Aya Mohammed Sanad Aboud</b></p>
