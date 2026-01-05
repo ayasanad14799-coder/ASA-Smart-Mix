@@ -6,8 +6,63 @@ import matplotlib.pyplot as plt
 import requests
 import json
 
-# 1. إعدادات الصفحة والهوية
+# 1. إعدادات الصفحة والهوية الأكاديمية
 st.set_page_config(page_title="Eco-Concrete AI Optimizer", layout="wide")
+
+# تنسيق CSS مخصص لإظهار الشعار والعنوان بشكل متناسق
+st.markdown("""
+    <style>
+    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; border-left: 5px solid #004a99; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .header-container { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        background-color: #ffffff; 
+        padding: 20px; 
+        border-radius: 15px; 
+        border: 2px solid #004a99; 
+        margin-bottom: 25px;
+    }
+    .logo-img { width: 100px; margin-right: 25px; }
+    .header-text { text-align: center; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# عرض الشعار وعنوان الرسالة (رابط الشعار رسمي لجامعة المنصورة)
+st.markdown(f"""
+    <div class="header-container">
+        <img src="https://upload.wikimedia.org/wikipedia/ar/thumb/0/01/Mansoura_University_logo.png/200px-Mansoura_University_logo.png" class="logo-img">
+        <div class="header-text">
+            <h2 style="color: #004a99; margin-bottom:5px;">Multi-criteria analysis of eco-efficient concrete from Technical, Environmental and Economic aspects</h2>
+            <p style="font-size: 1.2em; margin-bottom:5px;"><b>Prepared by: Aya Mohammed Sanad Aboud</b></p>
+            <p style="color: #666; margin-bottom:5px;">Supervision: <b>Prof. Ahmed Tahwia</b> & <b>Assoc. Prof. Asser El-Sheikh</b></p>
+            <p style="color: #004a99;"><b>Mansoura University | Faculty of Engineering</b></p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# 2. نظام الدخول الآمن
+if "auth" not in st.session_state: st.session_state.auth = False
+if not st.session_state.auth:
+    col_l, col_mid, col_r = st.columns([1, 2, 1])
+    with col_mid:
+        st.subheader("🔒 Secure Access Portal")
+        with st.form("login"):
+            pwd = st.text_input("Enter Access Code", type="password")
+            if st.form_submit_button("Access Engine"):
+                if pwd == "ASA2026": 
+                    st.session_state.auth = True
+                    st.rerun()
+                else: st.error("❌ Invalid Code")
+    st.stop()
+
+# باقي الكود كما هو (الموديلات والإرسال للجوجل شيت والنتائج)
+@st.cache_resource
+def load_assets():
+    model = joblib.load('concrete_model .pkl')
+    scaler = joblib.load('scaler_weights .pkl')
+    return model, scaler
+model, scaler = load_assets()
 
 def send_to_sheets(data):
     url = "https://script.google.com/macros/s/AKfycbxv_xvhImquXOtWAF7RbjKW6hMDyxL4LumA8G7LCXAcxFZvp8f-18tl6y0mvMGUtOG1/exec"
@@ -16,34 +71,7 @@ def send_to_sheets(data):
     except:
         pass
 
-st.markdown("""
-    <div style="background-color: white; padding: 20px; border-radius: 15px; border: 2px solid #004a99; text-align: center; margin-bottom: 20px;">
-        <h2 style="color: #004a99; margin-bottom:5px;">Multi-criteria analysis of eco-efficient concrete</h2>
-        <p style="font-size: 1.2em; margin-bottom:5px;"><b>Prepared by: Aya Mohammed Sanad Aboud</b></p>
-        <p style="color: #666;">Supervision: Prof. Ahmed Tahwia & Assoc. Prof. Asser El-Sheikh | Mansoura University</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# 2. حماية البرنامج
-if "auth" not in st.session_state: st.session_state.auth = False
-if not st.session_state.auth:
-    pwd = st.sidebar.text_input("Enter Access Code", type="password")
-    if st.sidebar.button("Login"):
-        if pwd == "ASA2026": 
-            st.session_state.auth = True
-            st.rerun()
-        else: st.error("Wrong Code")
-    st.stop()
-
-# 3. تحميل الموديلات
-@st.cache_resource
-def load_assets():
-    model = joblib.load('concrete_model .pkl')
-    scaler = joblib.load('scaler_weights .pkl')
-    return model, scaler
-model, scaler = load_assets()
-
-# 4. القائمة الجانبية (15 مدخل كاملين)
+# 4. القائمة الجانبية (كل المدخلات)
 with st.sidebar:
     st.header("⚙️ Mix Ingredients (kg/m³)")
     c = st.number_input("Cement", 100, 600, 350)
@@ -64,15 +92,13 @@ with st.sidebar:
     inf = st.slider("Price Inflation Index", 0.5, 2.5, 1.0)
     run = st.button("🚀 Run Full Analysis", type="primary", use_container_width=True)
 
-# 5. التبويبات
+# 5. عرض النتائج والتبويبات
 t1, t2, t3, t4 = st.tabs(["🏗️ Strength Results", "🛡️ Durability", "🌍 LCA & Econ", "💡 AI Optimizer"])
 
 if run:
-    # التنبؤ بالمخرجات الـ 17
     inp = np.array([[c, w, nca, nfa, rca, rfa, sf, fa, rha, fib, sp, wc, sz, sl, den]])
     p = model.predict(scaler.transform(inp))[0]
     
-    # إرسال الـ 32 متغير للشيت
     full_data = {
         "c":c,"w":w,"nca":nca,"nfa":nfa,"rca":rca,"rfa":rfa,"sf":sf,"fa":fa,"rha":rha,"fib":fib,"sp":sp,"sz":sz,"sl":sl,"den":den,"wc":wc,
         "p0":p[0],"p1":p[1],"p2":p[2],"p3":p[3],"p4":p[4],"p5":p[5],"p6":p[6],"p7":p[7],
@@ -89,7 +115,6 @@ if run:
         col4.metric("Split Tensile", f"{p[3]:.2f} MPa")
         
         st.divider()
-        st.markdown("### 📈 Strength Development Curve")
         fig, ax = plt.subplots(figsize=(10, 3.5))
         ax.plot(['7 Days', '28 Days', '90 Days'], [p[0], p[1], p[2]], marker='s', color='#004a99', linewidth=3)
         ax.set_ylabel("Strength (MPa)")
