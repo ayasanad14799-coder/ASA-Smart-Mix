@@ -2,131 +2,104 @@ import streamlit as st
 import joblib
 import numpy as np
 import pandas as pd
-import os
+import matplotlib.pyplot as plt
 
 # 1. إعدادات الصفحة
-st.set_page_config(page_title="ASA Smart-Concrete AI", layout="wide", page_icon="🏗️")
+st.set_page_config(page_title="Eco-Efficient Concrete AI | Mansoura University", layout="wide")
 
-# دالة التحقق من كلمة المرور
-def check_password():
-    if "password_correct" not in st.session_state:
-        st.session_state["password_correct"] = False
-    if st.session_state["password_correct"]:
-        return True
-    st.title("🔒 ASA Smart-Concrete Secure Portal")
-    placeholder = st.empty()
-    with placeholder.form("login"):
-        password = st.text_input("Access Password", type="password")
-        submit = st.form_submit_button("Login")
-        if submit:
-            if password == "ASA2026":
-                st.session_state["password_correct"] = True
-                placeholder.empty()
+# تنسيق المظهر
+st.markdown("""
+    <style>
+    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; border-left: 5px solid #004a99; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .header-box { background-color: #ffffff; padding: 25px; border-radius: 15px; border: 2px solid #004a99; text-align: center; margin-bottom: 20px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 2. الهوية الأكاديمية
+col_logo, col_title = st.columns([1, 4])
+with col_logo:
+    # شعار جامعة المنصورة
+    st.image("https://upload.wikimedia.org/wikipedia/ar/thumb/0/01/Mansoura_University_logo.png/200px-Mansoura_University_logo.png", width=130)
+
+with col_title:
+    st.markdown(f"""
+    <div class="header-box">
+        <h2 style="color: #004a99; margin-bottom:0;">Multi-criteria analysis of eco-efficient concrete</h2>
+        <p style="color: #555; font-size: 1.1em;">Technical, Environmental and Economic Aspects</p>
+        <p style="margin-top:10px;"><b>By: Aya Mohammed Sanad Aboud</b></p>
+        <p style="font-size: 0.9em; color: #666;">Under Supervision of: <b>Prof. Ahmed Tahwia</b> & <b>Assoc. Prof. Asser El-Sheikh</b></p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# بوابة الدخول
+if "auth" not in st.session_state: st.session_state.auth = False
+if not st.session_state.auth:
+    with st.container():
+        pwd = st.text_input("Access Password", type="password")
+        if st.button("Login"):
+            if pwd == "ASA2026": 
+                st.session_state.auth = True
                 st.rerun()
-                return True
-            else:
-                st.error("❌ Invalid Access Code")
-                return False
-    return False
+            else: st.error("Wrong Password")
+    st.stop()
 
-if check_password():
-    # 2. تحميل الموديل والسكيلر
-    @st.cache_resource
-    def load_assets():
-        # ملاحظة: تم إضافة المسافة قبل .pkl بناءً على أسماء ملفاتك الحالية على GitHub
-        model_path = 'concrete_model .pkl' 
-        scaler_path = 'scaler_weights .pkl'
-        
-        # التأكد من وجود الملفات
-        if not os.path.exists(model_path) or not os.path.exists(scaler_path):
-            # محاولة البحث عن الأسماء بدون مسافات كخطة بديلة
-            model_path = 'concrete_model.pkl'
-            scaler_path = 'scaler_weights.pkl'
-            
-        try:
-            model = joblib.load(model_path)
-            scaler = joblib.load(scaler_path)
-            return model, scaler
-        except Exception as e:
-            st.error(f"⚠️ Error loading assets: {e}")
-            return None, None
+# 3. تحميل الموديلات
+@st.cache_resource
+def load_assets():
+    model = joblib.load('concrete_model .pkl')
+    scaler = joblib.load('scaler_weights .pkl')
+    return model, scaler
 
-    model, scaler = load_assets()
+model, scaler = load_assets()
 
-    if model is not None:
-        st.title("🏗️ ASA Smart Design & Sustainability Analysis")
-        st.info("AI Model calibrated for High-Performance & Sustainable Concrete")
-        st.markdown("---")
+# --- واجهة الإدخال ---
+tab1, tab2, tab3 = st.tabs(["🚀 AI Prediction Engine", "📊 Statistical Validation", "📚 Research Database"])
 
-        # 3. الشريط الجانبي للمدخلات (15 متغير)
-        st.sidebar.header("🛠️ Mix Design Parameters")
-        
-        c = st.sidebar.number_input("Cement (kg/m³)", min_value=0.0, value=400.0)
-        w = st.sidebar.number_input("Water (kg/m³)", min_value=0.0, value=160.0)
-        nca = st.sidebar.number_input("Natural Coarse Agg (kg/m³)", min_value=0.0, value=1150.0)
-        nfa = st.sidebar.number_input("Natural Fine Agg (kg/m³)", min_value=0.0, value=750.0)
-        rca = st.sidebar.slider("RCA Replacement %", 0, 100, 0)
-        rfa = st.sidebar.slider("RFA Replacement %", 0, 100, 0)
-        sf = st.sidebar.number_input("Silica Fume (kg/m³)", min_value=0.0, value=0.0)
-        fa = st.sidebar.number_input("Fly Ash (kg/m³)", min_value=0.0, value=0.0)
-        rha = st.sidebar.slider("RHA Replacement %", 0, 20, 0)
-        nylon = st.sidebar.number_input("Nylon Fiber (kg/m³)", min_value=0.0, value=0.0, step=0.1)
-        sp = st.sidebar.number_input("Superplasticizer (kg/m³)", min_value=0.0, value=4.0)
-        
-        w_c = w/c if c != 0 else 0
-        msa = st.sidebar.selectbox("Max Agg Size (mm)", [10, 20], index=1)
-        slump = st.sidebar.number_input("Target Slump (mm)", min_value=0.0, value=160.0)
-        dens = st.sidebar.number_input("Fresh Density (kg/m³)", min_value=0.0, value=2450.0)
+with tab1:
+    st.subheader("🛠️ Concrete Mix Proportions (kg/m³)")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        cement = st.number_input("Cement", 100, 600, 350)
+        water = st.number_input("Water", 100, 250, 175)
+        nca = st.number_input("Natural Coarse Agg (NCA)", 500, 1500, 1050)
+    with c2:
+        nfa = st.number_input("Natural Fine Agg (NFA)", 300, 1000, 750)
+        rca_p = st.slider("RCA Replacement (%)", 0, 100, 0)
+        sf = st.number_input("Silica Fume", 0, 100, 0)
+    with c3:
+        fa = st.number_input("Fly Ash", 0, 200, 0)
+        sp = st.number_input("Superplasticizer", 0.0, 15.0, 2.5)
+        density = st.number_input("Target Density", 2000, 2600, 2400)
 
-        # 4. تبويبات النتائج
-        tab1, tab2, tab3 = st.tabs(["💪 Mechanical Properties", "💧 Durability", "🌍 Sustainability & Cost"])
+    # حساب الـ W/C والتحضير للتنبؤ (15 مدخلاً)
+    wc = water/cement if cement > 0 else 0
+    # ترتيب المدخلات كما تدرب الموديل
+    input_arr = np.array([[cement, water, nca, nfa, rca_p, 0, sf, fa, 0, 0, sp, wc, 20, 100, density]])
+    
+    if st.button("Predict Strength"):
+        scaled = scaler.transform(input_arr)
+        preds = model.predict(scaled)[0]
+        mae = 2.34 # هامش الخطأ الذي استخرجناه من كولاب
 
-        if st.sidebar.button("🚀 Run AI Analysis", use_container_width=True):
-            # ترتيب المدخلات للموديل
-            raw_inputs = np.array([[c, w, nca, nfa, rca, rfa, sf, fa, rha, nylon, sp, w_c, msa, slump, dens]])
-            scaled_inputs = scaler.transform(raw_inputs)
-            prediction = model.predict(scaled_inputs)[0]
+        st.divider()
+        res1, res2, res3 = st.columns(3)
+        res1.metric("CS 28d (MPa)", f"{preds[1]:.2f}", delta=f"± {mae}")
+        res2.metric("CS 90d (MPa)", f"{preds[2]:.2f}")
+        res3.metric("STS (MPa)", f"{preds[3]:.2f}")
 
-            with tab1:
-                st.subheader("📊 Mechanical Strengths")
-                col1, col2, col3 = st.columns(3)
-                # CS_28 هو Index 1، CS_90 هو Index 2، EM هو Index 5
-                col1.metric("CS (28 Days)", f"{prediction[1]:.2f} MPa")
-                col2.metric("CS (90 Days)", f"{prediction[2]:.2f} MPa")
-                col3.metric("Elastic Modulus (EM)", f"{prediction[5]:.2f} GPa")
+        # رسم منحنى النمو الزمني
+        fig, ax = plt.subplots(figsize=(8, 3))
+        ax.plot(['7d', '28d', '90d'], [preds[0], preds[1], preds[2]], marker='o', color='#004a99')
+        ax.set_title("Compressive Strength Development")
+        st.pyplot(fig)
 
-                st.markdown("---")
-                col4, col5 = st.columns(2)
-                # STS هو Index 3، FS هو Index 4
-                col4.metric("Split Tensile (STS)", f"{prediction[3]:.2f} MPa")
-                col5.metric("Flexural Strength (FS)", f"{prediction[4]:.2f} MPa")
+with tab2:
+    st.markdown("### 📈 Accuracy Analysis")
+    st.write("The model was validated using 400 experimental data points.")
+    st.image("https://via.placeholder.com/600x400?text=Insert+Scatter+Plot+From+Colab") # هنا ترفعين صورة الـ Scatter Plot من كولاب
+    st.info("Verified R-Squared: 0.941 | Mean Absolute Error: 2.34 MPa")
 
-                # رسم بياني للمقارنة
-                chart_data = pd.DataFrame({
-                    'Metric': ['CS 28d', 'CS 90d', 'STS', 'FS'],
-                    'Value (MPa)': [prediction[1], prediction[2], prediction[3], prediction[4]]
-                })
-                st.bar_chart(chart_data, x='Metric', y='Value (MPa)')
-
-            with tab2:
-                st.subheader("💧 Durability & Physical Tests")
-                d1, d2, d3 = st.columns(3)
-                # Water Absorption=6, UPV=7, Chloride Perm=10
-                d1.metric("Water Absorption", f"{prediction[6]:.2f} %")
-                d2.metric("UPV", f"{prediction[7]:.2f} km/s")
-                d3.metric("Chloride Permeability", f"{prediction[10]:.0f} Coulombs")
-
-            with tab3:
-                st.subheader("🌍 Eco-Impact & Economics")
-                st.markdown("### 💰 Cost Adjuster")
-                multiplier = st.number_input("Market Price Factor", value=1.0, step=0.1)
-                
-                # CO2=11, Energy=12, Cost=13
-                s1, s2, s3 = st.columns(3)
-                s1.metric("CO2 Footprint", f"{prediction[11]:.2f} kg/m³")
-                s2.metric("Energy Demand", f"{prediction[12]:.0f} MJ/m³")
-                s3.metric("Adjusted Cost", f"${prediction[13] * multiplier:.2f}")
-                
-                st.success("✅ Analysis Complete.")
-        else:
-            st.info("👈 Adjust parameters and click 'Run AI Analysis'")
+with tab3:
+    st.subheader("📚 Dataset Sample")
+    df_sample = pd.read_csv('Database_Inputs jimini2.csv', sep=';')
+    st.dataframe(df_sample.head(20))
