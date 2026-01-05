@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# 1. إعدادات الصفحة الاحترافية
+# 1. إعدادات الصفحة
 st.set_page_config(page_title="Eco-Efficient Concrete AI | Mansoura University", layout="wide", page_icon="🏗️")
 
 # --- تنسيق الواجهة (CSS) ---
@@ -16,24 +16,23 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. الهوية الأكاديمية (الرأس) ---
+# --- 2. الهوية الأكاديمية (الرأس) - تم تعديل اسم البحث هنا ---
 col_logo, col_title = st.columns([1, 4])
 with col_logo:
-    # شعار جامعة المنصورة
     st.image("https://upload.wikimedia.org/wikipedia/ar/thumb/0/01/Mansoura_University_logo.png/200px-Mansoura_University_logo.png", width=130)
 
 with col_title:
     st.markdown(f"""
     <div class="header-box">
-        <h2 style="color: #004a99; margin-bottom:0;">Multi-criteria analysis of eco-efficient concrete</h2>
-        <p style="color: #555; font-size: 1.1em;">Technical, Environmental and Economic Aspects</p>
-        <p style="margin-top:10px;"><b>By: Aya Mohammed Sanad Aboud</b></p>
-        <p style="font-size: 0.9em; color: #666;">Under Supervision of: <b>Prof. Ahmed Tahwia</b> & <b>Assoc. Prof. Asser El-Sheikh</b></p>
-        <p style="font-size: 0.8em; color: #888;">Mansoura University | Faculty of Engineering | 2026</p>
+        <h2 style="color: #004a99; margin-bottom:10px; line-height: 1.2;">Multi-criteria analysis of eco-efficient concrete from Technical, Environmental and Economic aspects</h2>
+        <hr style="border: 0.5px solid #004a99; width: 60%; margin: auto;">
+        <p style="margin-top:15px; font-size: 1.2em;"><b>By: Aya Mohammed Sanad Aboud</b></p>
+        <p style="font-size: 1em; color: #444;">Under Supervision of: <br> <b>Prof. Ahmed Tahwia</b> & <b>Assoc. Prof. Asser El-Sheikh</b></p>
+        <p style="font-size: 0.85em; color: #777;">Mansoura University | Faculty of Engineering | Structural Engineering Dept.</p>
     </div>
     """, unsafe_allow_html=True)
 
-# --- بوابة الدخول الآمن ---
+# --- بوابة الدخول ---
 if "auth" not in st.session_state: st.session_state.auth = False
 if not st.session_state.auth:
     col_l, col_mid, col_r = st.columns([1, 2, 1])
@@ -51,7 +50,6 @@ if not st.session_state.auth:
 # --- 3. تحميل الموديلات ---
 @st.cache_resource
 def load_assets():
-    # تنبيه: تم كتابة الأسماء بالمسافات كما في ملفاتك الأصلية
     model = joblib.load('concrete_model .pkl')
     scaler = joblib.load('scaler_weights .pkl')
     return model, scaler
@@ -59,7 +57,7 @@ def load_assets():
 try:
     model, scaler = load_assets()
 
-    # --- تقسيم التبويبات ---
+    # --- التبويبات ---
     tab_engine, tab_validation, tab_database = st.tabs(["🚀 AI Prediction Engine", "📊 Model Validation", "📚 Research Database"])
 
     with tab_engine:
@@ -81,25 +79,23 @@ try:
             sp = st.number_input("Superplasticizer", 0.0, 15.0, 2.5)
             density = st.number_input("Target Density", 2000, 2600, 2400)
             
-        # حساب W/C وإعداد مصفوفة المدخلات (15 مدخلاً بالترتيب)
         wc = water/cement if cement > 0 else 0
-        # المدخلات بالترتيب: Cement, Water, NCA, NFA, RCA_P, RFA_P, SF, FA, RHA_P, Fiber, SP, W/C, Size(20), Slump(100), Density
         input_arr = np.array([[cement, water, nca, nfa, rca_p, rfa_p, sf, fa, rha, fiber, sp, wc, 20, 100, density]])
 
         if st.button("Calculate Predicted Properties"):
             scaled = scaler.transform(input_arr)
             preds = model.predict(scaled)[0]
-            mae = 2.34  # متوسط الخطأ العلمي المستخرج من المعايرة
+            mae = 2.34
 
             st.divider()
-            st.markdown("### 🎯 Predicted Results")
+            st.markdown("### 🎯 Predicted Mechanical Properties")
             res1, res2, res3, res4 = st.columns(4)
             res1.metric("CS 28d (MPa)", f"{preds[1]:.2f}", delta=f"± {mae}")
             res2.metric("CS 90d (MPa)", f"{preds[2]:.2f}")
             res3.metric("STS (MPa)", f"{preds[3]:.2f}")
             res4.metric("FS (MPa)", f"{preds[4]:.2f}")
 
-            # رسم منحنى التطور الزمني للمقاومة
+            # رسم منحنى التطور الزمني
             st.markdown("### 📈 Strength Development Profile")
             fig, ax = plt.subplots(figsize=(10, 3.5))
             ax.plot(['7 Days', '28 Days', '90 Days'], [preds[0], preds[1], preds[2]], marker='o', color='#004a99', linewidth=2)
@@ -108,27 +104,20 @@ try:
             st.pyplot(fig)
 
     with tab_validation:
-        st.header("📊 Statistical Model Performance")
+        st.header("📊 Model Performance Metrics")
         v1, v2, v3 = st.columns(3)
         v1.metric("R-Squared (R²)", "0.941")
         v2.metric("Mean Absolute Error (MAE)", "2.34 MPa")
-        v3.metric("Dataset Size", "400 Samples")
-        
-        st.info("The model has been rigorously validated against experimental data from 48 international research papers.")
-        # ملاحظة: يمكنكِ رفع صورة مخطط التشتت هنا مستقبلاً
-        st.markdown("---")
-        st.write("### Predicted vs. Experimental Correlation")
-        st.caption("Detailed scatter plots can be extracted from the Colab validation script.")
+        v3.metric("Validated Mixes", "400 Samples")
+        st.info("The AI model was trained and validated using high-quality experimental data from 48 international research papers.")
 
     with tab_database:
-        st.header("📚 Training Dataset Overview")
+        st.header("📚 Training Data Preview")
         df_sample = pd.read_csv('Database_Inputs jimini2.csv', sep=';')
         st.dataframe(df_sample.head(50), use_container_width=True)
 
 except Exception as e:
     st.error(f"Error: {e}")
-    st.info("Check if model files are uploaded to GitHub correctly.")
 
-# تذييل الصفحة
 st.markdown("---")
-st.caption("© 2026 Eco-Efficient Concrete AI Engine | Mansoura University Project")
+st.caption("© 2026 | Multi-criteria analysis of eco-efficient concrete | Mansoura University")
