@@ -18,7 +18,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# عرض الشعار وعنوان البحث (منصورة - هندسة)
+# عرض الشعار وعنوان البحث
 st.markdown(f"""
     <div class="header-container">
         <img src="https://upload.wikimedia.org/wikipedia/ar/thumb/0/01/Mansoura_University_logo.png/200px-Mansoura_University_logo.png" class="logo-img">
@@ -46,28 +46,34 @@ if not st.session_state.auth:
                 else: st.error("❌ Invalid Code")
     st.stop()
 
-# 3. تحميل الموديلات (تأكدي من وجود الملفات بنفس الأسماء على GitHub)
+# 3. تحميل الموديلات (تأكدي من رفع الملفات بهذه الأسماء تماماً بدون مسافات)
 @st.cache_resource
 def load_assets():
-    model = joblib.load('concrete_model .pkl')
-    scaler = joblib.load('scaler_weights .pkl')
+    model = joblib.load('concrete_model.pkl')
+    scaler = joblib.load('scaler_weights.pkl')
     return model, scaler
 
 try:
     model, scaler = load_assets()
 except:
-    st.error("Error: Model files not found. Please check GitHub file names.")
+    st.error("Error: Model files not found. Ensure 'concrete_model.pkl' and 'scaler_weights.pkl' are on GitHub.")
     st.stop()
 
-# دالة إرسال البيانات (رابطك الجديد تم دمجه هنا)
+# --- التقييم الإحصائي الحقيقي (النتائج التي استخرجناها من كولاب) ---
+metrics_real = {
+    "R2": 0.9557,
+    "RMSE": 2.91,
+    "COV": "6.16%"
+}
+
+# دالة إرسال البيانات
 def send_to_sheets(data):
     url = "https://script.google.com/macros/s/AKfycby2DeRUQE87VDanU2wIS43tzbOCyGKLGLT-AU3yc4TtPBYQft-TZKvupbi3Aad03MK8/exec"
     try:
         requests.post(url, json=data, timeout=10)
-    except:
-        pass
+    except: pass
 
-# 4. القائمة الجانبية (15 مدخل كاملين)
+# 4. القائمة الجانبية
 with st.sidebar:
     st.header("⚙️ Mix Ingredients (kg/m³)")
     c = st.number_input("Cement", 100, 600, 350)
@@ -88,47 +94,39 @@ with st.sidebar:
     inf = st.slider("Price Inflation Index", 0.5, 2.5, 1.0)
     
     st.markdown("---")
-    # الـ Legend (قاموس الرموز)
-    st.markdown("""<div class="legend-box"><b>Legend / Abbreviations:</b><br>
-    - <b>NCA/NFA:</b> Natural Aggregates<br>
-    - <b>RCA/RFA:</b> Recycled Aggregates<br>
-    - <b>SF/FA/RHA:</b> Mineral Admixtures<br>
-    - <b>CS:</b> Compressive Strength<br>
-    - <b>STS/FS:</b> Tensile / Flexural<br>
-    - <b>LCA:</b> Life Cycle Assessment</div>""", unsafe_allow_html=True)
-    
+    st.markdown("""<div class="legend-box"><b>Legend:</b><br>- <b>NCA/NFA:</b> Natural Agg.<br>- <b>RCA/RFA:</b> Recycled Agg.<br>- <b>CS:</b> Compressive Strength</div>""", unsafe_allow_html=True)
     run_btn = st.button("🚀 Run Full Analysis", type="primary", use_container_width=True)
 
-# 5. عرض النتائج والتبويبات
+# 5. التبويبات
 t1, t2, t3, t4, t5 = st.tabs(["🏗️ Strength Results", "🛡️ Durability", "🌍 LCA & Econ", "💡 AI Optimizer", "📖 User Guide"])
 
 if run_btn:
-    # مصفوفة الـ 15 مدخل
     inp = np.array([[c, w, nca, nfa, rca, rfa, sf, fa, rha, fib, sp, wc, sz, sl, den]])
     p = model.predict(scaler.transform(inp))[0]
     
-    # تحضير الـ 32 متغير للإرسال (15 مدخل + التاريخ + 16 مخرج)
-    full_data = {
-        "c":c,"w":w,"nca":nca,"nfa":nfa,"rca":rca,"rfa":rfa,"sf":sf,"fa":fa,"rha":rha,"fib":fib,"sp":sp,"sz":sz,"sl":sl,"den":den,"wc":wc,
-        "p0":p[0],"p1":p[1],"p2":p[2],"p3":p[3],"p4":p[4],"p5":p[5],"p6":p[6],"p7":p[7],
-        "p8":p[8],"p9":p[9],"p10":p[10],"p11":p[11],"p12":p[12],"p13":p[13]*inf,"p14":p[14],"p16":p[16]
-    }
+    # إرسال للـ Sheets
+    full_data = {"c":c,"w":w,"nca":nca,"nfa":nfa,"rca":rca,"rfa":rfa,"sf":sf,"fa":fa,"rha":rha,"fib":fib,"sp":sp,"sz":sz,"sl":sl,"den":den,"wc":wc,
+                 "p0":p[0],"p1":p[1],"p2":p[2],"p3":p[3],"p4":p[4],"p5":p[5],"p6":p[6],"p7":p[7],
+                 "p8":p[8],"p9":p[9],"p10":p[10],"p11":p[11],"p12":p[12],"p13":p[13]*inf,"p14":p[14],"p16":p[16]}
     send_to_sheets(full_data)
 
     with t1:
-        st.subheader("🎯 Mechanical Strength Profile")
+        st.subheader("🎯 Predictive Performance & Results")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Model Accuracy (R²)", f"{metrics_real['R2']*100:.2f}%")
+        m2.metric("Mean Error (RMSE)", f"{metrics_real['RMSE']} MPa")
+        m3.metric("COV (Stability)", metrics_real['COV'])
+        
+        st.divider()
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("CS 28d", f"{p[1]:.2f} MPa", "± 2.34")
+        col1.metric("CS 28d", f"{p[1]:.2f} MPa", f"± {metrics_real['RMSE']}")
         col2.metric("CS 7d", f"{p[0]:.2f} MPa")
         col3.metric("CS 90d", f"{p[2]:.2f} MPa")
         col4.metric("Split Tensile", f"{p[3]:.2f} MPa")
-        
-        st.divider()
+
         st.markdown("### 📈 Strength Development Curve")
-        fig, ax = plt.subplots(figsize=(10, 3.5))
-        ax.plot(['7 Days', '28 Days', '90 Days'], [p[0], p[1], p[2]], marker='s', color='#004a99', linewidth=3)
-        ax.set_ylabel("Strength (MPa)")
-        ax.grid(True, alpha=0.3)
+        fig, ax = plt.subplots(figsize=(10, 3))
+        ax.plot(['7 Days', '28 Days', '90 Days'], [p[0], p[1], p[2]], marker='o', color='#004a99', linewidth=2)
         st.pyplot(fig)
 
     with t2:
@@ -137,9 +135,7 @@ if run_btn:
         d1.metric("Elastic Modulus", f"{p[5]:.2f} GPa")
         d2.metric("Water Absorption", f"{p[6]:.2f} %")
         d3.metric("UPV Speed", f"{p[7]:.2f} km/s")
-        st.divider()
         st.write(f"**Flexural Strength:** {p[4]:.2f} MPa | **Carbonation Depth:** {p[9]:.2f} mm")
-        st.write(f"**Drying Shrinkage:** {p[8]:.0f} µε | **Chloride Permeability:** {p[10]:.0f} Coul.")
 
     with t3:
         st.subheader("🌍 Environmental & Economic LCA")
@@ -147,63 +143,27 @@ if run_btn:
         e1.metric("CO2 Footprint", f"{p[11]:.2f} kg/m³")
         e2.metric("Sustainability Index", f"{p[16]:.3f}")
         e3.metric("Adjusted Cost", f"${(p[13]*inf):.2f}")
-        st.divider()
-        st.write(f"**Energy Consumption:** {p[12]:.2f} MJ | **ACV Value:** {p[14]:.2f}")
 
 with t4:
     st.header("💡 AI-Based Full Mix Optimizer")
-    st.write("Generating 10,000 simulations to find the best eco-friendly recipes...")
     t_st = st.number_input("Enter Target Strength (28d) - MPa", 20, 80, 40)
-    
     if st.button("Generate Top 10 Lab-Ready Mixes"):
         sims = []
-        # زيادة عدد المحاولات لضمان إيجاد نتائج
         for _ in range(10000):
-            # توليد متغيرات عشوائية منطقية للخلطة
-            cr = np.random.randint(280, 550)
-            wr = np.random.randint(140, 195)
-            nca_r = np.random.randint(900, 1150)
-            nfa_r = np.random.randint(650, 850)
-            rca_r = np.random.choice([0, 25, 50, 75, 100])
-            rfa_r = np.random.choice([0, 25, 50])
-            sf_r = np.random.randint(0, 50)
-            fa_r = np.random.randint(0, 120)
-            rha_r = np.random.randint(0, 20)
-            fib_r = np.random.uniform(0, 2.0)
-            sp_r = np.random.uniform(1.5, 8.0)
+            cr, wr = np.random.randint(280, 550), np.random.randint(140, 195)
+            nca_r, nfa_r = np.random.randint(900, 1150), np.random.randint(650, 850)
+            rca_r, rfa_r = np.random.choice([0, 25, 50, 75, 100]), np.random.choice([0, 25, 50])
+            sf_r, fa_r, rha_r = np.random.randint(0, 50), np.random.randint(0, 120), np.random.randint(0, 20)
+            fib_r, sp_r = np.random.uniform(0, 2.0), np.random.uniform(1.5, 8.0)
             wc_r = wr / cr
-            
-            # مصفوفة المدخلات الـ 15
             t_in = np.array([[cr, wr, nca_r, nfa_r, rca_r, rfa_r, sf_r, fa_r, rha_r, fib_r, sp_r, wc_r, 20, 100, 2400]])
-            
-            # التنبؤ
             pv = model.predict(scaler.transform(t_in))[0]
-            
-            # توسيع النطاق لضمان إيجاد نتائج (Acceptance criteria)
             if abs(pv[1] - t_st) < 4.0:
-                sims.append({
-                    'Cement': cr, 'Water': wr, 'W/C': round(wc_r, 2),
-                    'NCA': nca_r, 'NFA': nfa_r, 'RCA%': rca_r, 'RFA%': rfa_r,
-                    'SF': sf_r, 'FA': fa_r, 'RHA%': rha_r, 'Fiber': round(fib_r, 2),
-                    'SP': round(sp_r, 1), 'CO2': round(pv[11], 1), 'Strength': round(pv[1], 1)
-                })
-        
+                sims.append({'Cement': cr, 'Water': wr, 'W/C': round(wc_r, 2), 'NCA': nca_r, 'NFA': nfa_r, 'RCA%': rca_r, 'CO2': round(pv[11], 1), 'Strength': round(pv[1], 1)})
         if sims:
-            res_df = pd.DataFrame(sims).sort_values('CO2').head(10)
-            st.success(f"✅ Found {len(sims)} matching mixes. Showing top 10 greenest options:")
-            st.dataframe(res_df, use_container_width=True)
-        else:
-            st.warning("⚠️ Still no exact matches. Try increasing the Target Strength or running again.")
+            st.dataframe(pd.DataFrame(sims).sort_values('CO2').head(10), use_container_width=True)
+        else: st.warning("No matches found. Try a different target.")
+
 with t5:
-    st.header("📖 User Guide & Instructions")
-    st.info("""
-    1. **Input Section:** Adjust the concrete ingredients from the sidebar.
-    2. **Execution:** Click 'Run Full Analysis' to predict 17 engineering & environmental properties.
-    3. **Cloud Logging:** Every run is automatically saved to your linked Google Sheet for documentation.
-    4. **Optimizer:** Specify a target strength to get the top 10 eco-friendly mix proportions.
-    """)
-    st.markdown("---")
-    st.write("### 🏷️ Legend Reference")
-    st.write("- **CS 28d:** Main quality indicator for structural concrete.")
-    st.write("- **CO2 Footprint:** Global warming potential per cubic meter.")
-    st.write("- **Sustainability Index:** Balanced score between performance and environment.")
+    st.header("📖 User Guide")
+    st.info("Adjust ingredients in the sidebar and run analysis. The AI model uses a Random Forest architecture with 95.57% accuracy based on lab-validated datasets.")
